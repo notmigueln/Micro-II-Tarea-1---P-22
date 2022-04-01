@@ -13,10 +13,12 @@ library(schoolmath)
 #Lectura de la base principal de donde vamos a sacar los datos
 balance <- read.csv("balance_aae.csv")
 df0 <- data.frame(balance)
+write.dta(df0,"balance")
+
 
 #====== Creción de la primera base: baseline
 
-baseline <- df0 %>% filter(day_in_study>=1 & day_in_study<=7) %>%
+completa <- df0 %>% 
   mutate(happy = case_when(happiness_today==3 | happiness_today==4 ~ 1,
                            TRUE ~ 0),
          energy = case_when(ds_g8_feel_energetic>=0 & ds_g8_feel_energetic<=2 ~ 1,
@@ -27,28 +29,38 @@ baseline <- df0 %>% filter(day_in_study>=1 & day_in_study<=7) %>%
                            TRUE ~ 0)) %>%
   select(-happiness_today,-no_sleepaids_chosen,-finished_study, -ds_g8_feel_energetic,
          -ds_g13c_stressed, -awake_per_hour_report, -awake_per_hour, -nap_treatment,
-         -nap_group) %>%
-  group_by(pid) %>% summarise(across(everything(),mean))
+         -nap_group) 
+
+write.csv(completa,"completa",row.names = F)
+write.dta(completa,"completa")
+
+baseline <- completa %>% filter(day_in_study>=1 & day_in_study<=7) %>% 
+  group_by(pid) %>% 
+  summarise(across(everything(),mean,na.rm = T)) %>% select(-day_in_study)
+
+# Creamos la variable de atricion 
+
+median_base_earnings <- median(baseline$earnings)
+atricion <- baseline %>%
+  mutate(drop_indicator = if_else((female_ == 1 & (age_ == 29 | age_ == 30) & T_nap == 1),1,
+                                  if_else(age_ < 45 & education_ > 5 & earnings < median_base_earnings  & T_nap == 0,1,0))) %>%
+  select(pid,drop_indicator)
+
+baseline <- baseline %>% left_join(atricion,by = "pid", keep = F)
+
+# Pegamos la variable de atricion
+
 
 #Generamos archivos .dta y .csv que contengan la base creada
 write.csv(baseline,"baseline", row.names = F)
 write.dta(baseline,"baseline")
 
 #====== Creación de la base: postline
-postline <- df0 %>% filter(day_in_study>=22 & day_in_study<=28) %>%
-  mutate(happy = case_when(happiness_today==3 | happiness_today==4 ~ 1,
-                           TRUE ~ 0),
-         energy = case_when(ds_g8_feel_energetic>=0 & ds_g8_feel_energetic<=2 ~ 1,
-                            TRUE ~ 0),
-         stress = case_when(ds_g13c_stressed>=2 & ds_g13c_stressed<=4 ~ 1,
-                            TRUE ~ 0),
-         T_nap = case_when(nap_treatment==0 ~ 1,
-                           TRUE ~ 0)) %>%
-  select(-happiness_today,-no_sleepaids_chosen,-finished_study, -ds_g8_feel_energetic,
-         -ds_g13c_stressed, -awake_per_hour_report, -awake_per_hour, -nap_treatment,
-         -nap_group) %>%
-  group_by(pid) %>% summarise(across(everything(),mean))
-
+postline <- completa %>% filter(day_in_study>=22 & day_in_study<=28) %>% 
+  group_by(pid) %>% 
+  summarise(across(everything(),mean,na.rm = T)) %>% 
+  select(-day_in_study) %>%
+  left_join(atricion,by = "pid", keep = F)
 
 #Generamos archivos .dta y .csv que contengan la base creada
 write.csv(postline, "endline", row.names = F)
@@ -160,22 +172,6 @@ t_bal_1_1 <- data.frame(nap = t(meds_1_1[2,2:11]),no_nap = t(meds_1_1[1,2:11]),d
 stargazer(t_bal_1_1,summary = F)
 
 
-
-#======Pregunta 4: Atrición (Para 8 días)
-
-
-#Creamos una nueva variable que indique la pérdida de observaciones en ambas bases
-
-median_base_earnings <- median(base_8$earnings)
-base<-base_8 %>%
-  mutate(drop_indicator = if_else(((female_ == 1 & (age_ == 29 | age_ == 30) & nap_treatment == 0) | 
-                                     (earnings < median_base_earnings & age_ < 45 & ( no_of_children_>=0 & no_of_children_<=2 ) & education_ > 5 & (nap_treatment == 1 | nap_treatment == 2))),1,0))
-
-data_new <- base[base$drop_indicator == 1, ]
-pids <- c(data_new$pid)
-
-post<-post_8 %>%
-  mutate(drop_indicator = if_else(pid %in% pids == TRUE,1,0))
 
 
 #TABLA DE BALANCE 5: Control contra tratamiento en los primeros siete días del experimento
