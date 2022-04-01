@@ -11,76 +11,48 @@ library(schoolmath)
 #=============== CREACIÓN DE LAS BASES DE DATOS ==================
 
 #Lectura de la base principal de donde vamos a sacar los datos
-balance <- read.csv("balance.csv")
+balance <- read.csv("balance_aae.csv")
 df0 <- data.frame(balance)
 
 #====== Creción de la primera base: baseline
 
-pid<-c()
-for (i in 1:nrow(df0)){
-  if (df0[i,1] %in% pid == FALSE){
-    pid<-c(pid,df0[i,1])
-  }
-}
-
-
-for (i in 2:ncol(df0)){
-  prom<-c()
-  suma<-c()
-  col_count_1=1                         #Aquí seleccionamos cuántos días queremos que incluye nuestro baseline
-  col_count_2=7                         #De momento está seleccionado para 7 días, col_count_2 debería ser igual a 8 si queremos 8 días. 
-  for(l in 1:length(pid)){
-    suma<-c()
-    for (j in col_count_1:col_count_2){
-      suma<-c(suma,df0[j,i])
-    }
-    col_count_1=col_count_1+28
-    col_count_2=col_count_2+28
-    prom<-c(prom,mean(suma,na.rm = TRUE))
-  }
-  assign(names(df0)[i],prom)
-}
-
-baseline<-data.frame(pid,day_in_study,time_in_office,absences_baseline,age_,female_,education_,treatment_group,no_sleepaids_chosen,sleep_night,nap_time_mins,no_of_children_,finished_study,nap_treatment,act_inbed,an_12_number_of_awakenings,an_13_average_awakening_length,typing_time_hr,earnings,productivity,tot_earnings,deposit_today_amount,withdraw_today_amount,pay_hf,pay_corsi,pay_pvt,b1,c27,c28_h,c28_m,d1,prior_savings,go_to_bed,ds_a3_report_wakeup,awake_self_report,out_of_bed,happiness_today,ds_g1_satisfaction,ds_g8_feel_energetic,ds_g13c_stressed,sleep_eff,sleep_report,awake_per_hour_report,awake_per_hour,nap_group,daily_savings,corsi_measure,hf_measure,pvt_measure,treat_s,treat_s_i,health_bsl)
-
-#Redondeamos variables que deberían ser numéricas discretas
-baseline$an_12_number_of_awakenings <- round(baseline$an_12_number_of_awakenings, 0)
-baseline$ds_a3_report_wakeup <- round(baseline$ds_a3_report_wakeup, 0)
-baseline$happiness_today <- round(baseline$happiness_today, 0)
+baseline <- df0 %>% filter(day_in_study>=1 & day_in_study<=7) %>%
+  mutate(happy = case_when(happiness_today==3 | happiness_today==4 ~ 1,
+                           TRUE ~ 0),
+         energy = case_when(ds_g8_feel_energetic>=0 & ds_g8_feel_energetic<=2 ~ 1,
+                            TRUE ~ 0),
+         stress = case_when(ds_g13c_stressed>=2 & ds_g13c_stressed<=4 ~ 1,
+                            TRUE ~ 0),
+         T_nap = case_when(nap_treatment==0 ~ 1,
+                           TRUE ~ 0)) %>%
+  select(-happiness_today,-no_sleepaids_chosen,-finished_study, -ds_g8_feel_energetic,
+         -ds_g13c_stressed, -awake_per_hour_report, -awake_per_hour, -nap_treatment,
+         -nap_group) %>%
+  group_by(pid) %>% summarise(across(everything(),mean))
 
 #Generamos archivos .dta y .csv que contengan la base creada
-write.csv(baseline,"/Users/migueln/Desktop/Maestría/baseline.csv", row.names = TRUE)
-write.dta(baseline,"/Users/migueln/Desktop/Maestría/baseline.dta")
+write.csv(baseline,"baseline", row.names = F)
+write.dta(baseline,"baseline")
 
 #====== Creación de la base: postline
+postline <- df0 %>% filter(day_in_study>=22 & day_in_study<=28) %>%
+  mutate(happy = case_when(happiness_today==3 | happiness_today==4 ~ 1,
+                           TRUE ~ 0),
+         energy = case_when(ds_g8_feel_energetic>=0 & ds_g8_feel_energetic<=2 ~ 1,
+                            TRUE ~ 0),
+         stress = case_when(ds_g13c_stressed>=2 & ds_g13c_stressed<=4 ~ 1,
+                            TRUE ~ 0),
+         T_nap = case_when(nap_treatment==0 ~ 1,
+                           TRUE ~ 0)) %>%
+  select(-happiness_today,-no_sleepaids_chosen,-finished_study, -ds_g8_feel_energetic,
+         -ds_g13c_stressed, -awake_per_hour_report, -awake_per_hour, -nap_treatment,
+         -nap_group) %>%
+  group_by(pid) %>% summarise(across(everything(),mean))
 
-for (i in 2:ncol(df0)){
-  prom<-c()
-  suma<-c()
-  col_count_1=22                          #Aquí seleccionamos cuántos días queremos que incluye nuestro postline
-  col_count_2=28                          #De momento está seleccionado para 7 días, col_count_1 debería ser igual a 21 si queremos 8 días.
-  for(l in 1:length(pid)){
-    suma<-c()
-    for (j in col_count_1:col_count_2){
-      suma<-c(suma,df0[j,i])
-    }
-    col_count_1=col_count_1+28
-    col_count_2=col_count_2+28
-    prom<-c(prom,mean(suma,na.rm = TRUE))
-  }
-  assign(names(df0)[i],prom)
-}
-
-postline<-data.frame(pid,day_in_study,time_in_office,absences_baseline,age_,female_,education_,treatment_group,no_sleepaids_chosen,sleep_night,nap_time_mins,no_of_children_,finished_study,nap_treatment,act_inbed,an_12_number_of_awakenings,an_13_average_awakening_length,typing_time_hr,earnings,productivity,tot_earnings,deposit_today_amount,withdraw_today_amount,pay_hf,pay_corsi,pay_pvt,b1,c27,c28_h,c28_m,d1,prior_savings,go_to_bed,ds_a3_report_wakeup,awake_self_report,out_of_bed,happiness_today,ds_g1_satisfaction,ds_g8_feel_energetic,ds_g13c_stressed,sleep_eff,sleep_report,awake_per_hour_report,awake_per_hour,nap_group,daily_savings,corsi_measure,hf_measure,pvt_measure,treat_s,treat_s_i,health_bsl)
-
-#Redondeamos variables que deberían ser numéricas discretas
-postline$an_12_number_of_awakenings <- round(postline$an_12_number_of_awakenings, 0)
-postline$ds_a3_report_wakeup <- round(postline$ds_a3_report_wakeup, 0)
-postline$happiness_today <- round(postline$happiness_today, 0)
 
 #Generamos archivos .dta y .csv que contengan la base creada
-write.csv(postline,"/Users/migueln/Desktop/Maestría/postline.csv", row.names = TRUE)
-write.dta(postline,"/Users/migueln/Desktop/Maestría/postline.dta")
+write.csv(postline, "endline", row.names = F)
+write.dta(postline,"endline")
 
 
 
