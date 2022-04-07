@@ -11,9 +11,10 @@ library(schoolmath)
 #=============== CREACIÓN DE LAS BASES DE DATOS ==================
 
 #Lectura de la base principal de donde vamos a sacar los datos
+
 balance <- read.csv("balance_aae.csv")
 df0 <- data.frame(balance)
-write.dta(df0,"balance")
+write.dta(df0,"balance.dta")
 
 
 #====== Creción de la primera base: baseline
@@ -31,8 +32,8 @@ completa <- df0 %>%
          -ds_g13c_stressed, -awake_per_hour_report, -awake_per_hour, -nap_treatment,
          -nap_group) 
 
-write.csv(completa,"completa",row.names = F)
-write.dta(completa,"completa")
+write.csv(completa,"completa.csv",row.names = F)
+write.dta(completa,"completa.dta")
 
 baseline <- completa %>% filter(day_in_study>=1 & day_in_study<=7) %>% 
   group_by(pid) %>% 
@@ -52,8 +53,8 @@ baseline <- baseline %>% left_join(atricion,by = "pid", keep = F)
 
 
 #Generamos archivos .dta y .csv que contengan la base creada
-write.csv(baseline,"baseline", row.names = F)
-write.dta(baseline,"baseline")
+write.csv(baseline,"baseline.csv", row.names = F)
+write.dta(baseline,"baseline.dta")
 
 #====== Creación de la base: postline
 postline <- completa %>% filter(day_in_study>=22 & day_in_study<=28) %>% 
@@ -63,8 +64,8 @@ postline <- completa %>% filter(day_in_study>=22 & day_in_study<=28) %>%
   left_join(atricion,by = "pid", keep = F)
 
 #Generamos archivos .dta y .csv que contengan la base creada
-write.csv(postline, "endline", row.names = F)
-write.dta(postline,"endline")
+write.csv(postline, "endline.csv", row.names = F)
+write.dta(postline,"endline.dta")
 
 
 
