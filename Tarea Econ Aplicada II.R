@@ -47,23 +47,35 @@ atricion <- baseline %>%
                                   if_else(age_ < 45 & education_ > 5 & earnings < median_base_earnings  & T_nap == 0,1,0))) %>%
   select(pid,drop_indicator)
 
-baseline <- baseline %>% left_join(atricion,by = "pid", keep = F)
-
 # Pegamos la variable de atricion
 
+baseline <- baseline %>% left_join(atricion,by = "pid", keep = F)
 
-#Generamos archivos .dta y .csv que contengan la base creada
-write.csv(baseline,"baseline.csv", row.names = F)
-write.dta(baseline,"baseline.dta")
 
 #====== Creación de la base: postline
+
 postline <- completa %>% filter(day_in_study>=22 & day_in_study<=28) %>% 
   group_by(pid) %>% 
   summarise(across(everything(),mean,na.rm = T)) %>% 
   select(-day_in_study) %>%
   left_join(atricion,by = "pid", keep = F)
 
-#Generamos archivos .dta y .csv que contengan la base creada
+#Eliminamos las observaciones que no tienen valores para productivty o las variables de la pregunta 2d
+
+#ids_to_eliminate = c(5118,5146,5152,5154,5155,5162,5165,5185,5205,5214,5236,5247,5270,5291,5303,5322,5343,5357,5362,5373,5378,5381,5385,5402,5404,5448,5451,5457,5459,5466,5468,5475,5480,5481,5503,5563,5575,5581)
+ids_to_eliminate <- postline %>% filter(is.na(nap_time_mins) == TRUE |  is.na(productivity) == TRUE| is.na(corsi_measure) == TRUE| is.na(hf_measure)== TRUE | is.na(pvt_measure)== TRUE)
+ids_to_eliminate <- ids_to_eliminate$pid
+
+baseline<-baseline[!( baseline$pid  %in%  ids_to_eliminate == TRUE),]
+postline<-postline[!( postline$pid  %in%  ids_to_eliminate == TRUE),]
+
+#Generamos archivos .dta y .csv que contengan la base creada baseline
+
+write.csv(baseline,"baseline.csv", row.names = F)
+write.dta(baseline,"baseline.dta")
+
+#Generamos archivos .dta y .csv que contengan la base creada postline
+
 write.csv(postline, "endline.csv", row.names = F)
 write.dta(postline,"endline.dta")
 
